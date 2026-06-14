@@ -15,7 +15,7 @@ const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
 renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
 renderer.setSize(w, h);
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
-renderer.toneMappingExposure = 1.2;
+renderer.toneMappingExposure = 1.8;
 // ensure clear color is fully transparent
 renderer.setClearColor(0x000000, 0);
 document.body.appendChild(renderer.domElement);
@@ -68,7 +68,7 @@ churchRoof.position.sub(center); // move model so its center is at (0,0,0) relat
 pivot.add(churchRoof);
 
 // start rotated 270 degrees around Y
-pivot.rotation.y = 3 * Math.PI / 2.2; // 270deg
+pivot.rotation.y = 1 * Math.PI / 2.2; // 270deg
 pivot.rotation.x = -0.1
 
 // bounce setup: 180° total (min = 270° - 180° = 90°, max = 270°)
@@ -110,22 +110,37 @@ const material = new THREE.MeshStandardMaterial({
 const cube = new THREE.Mesh(geometry, material);
 // scene.add(cube);
 
-const hemiLight = new THREE.HemisphereLight(0xffffff, 0x666666, 0.5);
-scene.add(hemiLight);
-// add ambient fill light (no directional light)
-const ambient = new THREE.AmbientLight(0xffffff, 0.5);
+// All lighting removed (hemiLight, ambient, backLight)
+// even, soft lighting around the model
+renderer.physicallyCorrectLights = true;
+renderer.outputEncoding = THREE.sRGBEncoding;
+
+// soft global fill
+const ambient = new THREE.AmbientLight(0xffffff, 1);
 scene.add(ambient);
 
-// Sprites BG
-// const gradientBackground = getLayer({
-//   hue: 0.5,
-//   numSprites: 8,
-//   opacity: 0.2,
-//   radius: 10,
-//   size: 24,
-//   z: -15.5,
-// });
-// scene.add(gradientBackground);
+// subtle hemisphere for vertical balance
+const hemi = new THREE.HemisphereLight(0xffffff, 0x444444, 0.15);
+hemi.position.set(0, 1, 0);
+scene.add(hemi);
+
+// ring of gentle directional "fill" lights placed around the model
+const fillPositions = [
+  new THREE.Vector3(5, 3, 0),
+  new THREE.Vector3(-5, 3, 0),
+  new THREE.Vector3(0, 3, 5),
+  new THREE.Vector3(0, 3, -5),
+];
+
+fillPositions.forEach((pos) => {
+  const fill = new THREE.DirectionalLight(0xffffff, 0.35);
+  fill.position.copy(pos);
+  fill.castShadow = false; // keep shadows off for even lighting
+  // ensure the light targets the model center (pivot at world origin)
+  fill.target.position.set(0, 0, 0);
+  scene.add(fill);
+  scene.add(fill.target);
+});
 
 function animate() {
   requestAnimationFrame(animate);
